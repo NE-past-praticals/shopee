@@ -5,6 +5,7 @@ import Colors from "@/constants/colors";
 import CartBadge from "@/components/CartBadge";
 import { Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 export default function TabLayout() {
   const router = useRouter();
@@ -17,13 +18,29 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors.background,
           borderTopColor: Colors.border,
+          elevation: 0,
+          shadowOpacity: 0,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontFamily: "Poppins-Medium",
+          fontSize: 12,
+          marginBottom: 5,
         },
         headerStyle: {
           backgroundColor: Colors.background,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.border,
         },
         headerTintColor: Colors.text,
         headerTitleStyle: {
+          fontFamily: "Poppins-SemiBold",
           fontWeight: "600",
+        },
+        tabBarIconStyle: {
+          marginTop: 5,
         },
       }}
     >

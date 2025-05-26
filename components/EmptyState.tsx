@@ -2,7 +2,9 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { ShoppingBag } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import Fonts from "@/constants/fonts";
 import Button from "./Button";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 interface EmptyStateProps {
   title: string;
@@ -20,7 +22,10 @@ export default function EmptyState({
   onButtonPress,
 }: EmptyStateProps) {
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      style={styles.container}
+      entering={FadeIn.duration(500)}
+    >
       {icon || <ShoppingBag size={64} color={Colors.placeholder} />}
       
       <Text style={styles.title}>{title}</Text>
@@ -33,7 +38,7 @@ export default function EmptyState({
           style={styles.button}
         />
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -45,8 +50,8 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 22,
+    fontFamily: Fonts.bold,
     color: Colors.text,
     marginTop: 16,
     marginBottom: 8,
@@ -54,9 +59,11 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: Colors.placeholder,
     textAlign: "center",
     marginBottom: 24,
+    lineHeight: 22,
   },
   button: {
     minWidth: 200,

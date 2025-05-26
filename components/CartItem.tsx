@@ -4,30 +4,42 @@ import { Minus, Plus, Trash2 } from "lucide-react-native";
 import { CartItem as CartItemType } from "@/types/api";
 import { useCartStore } from "@/stores/cartStore";
 import Colors from "@/constants/colors";
+import Fonts from "@/constants/fonts";
+import Animated, { FadeInRight, FadeOutRight, Layout } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 
 interface CartItemProps {
   item: CartItemType;
+  index: number;
 }
 
-export default function CartItem({ item }: CartItemProps) {
+export default function CartItem({ item, index }: CartItemProps) {
   const { updateQuantity, removeFromCart } = useCartStore();
   
   const handleIncrement = () => {
     updateQuantity(item.product.id, item.quantity + 1);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
   
   const handleDecrement = () => {
     if (item.quantity > 1) {
       updateQuantity(item.product.id, item.quantity - 1);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
   
   const handleRemove = () => {
     removeFromCart(item.product.id);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
   
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      style={styles.container}
+      entering={FadeInRight.delay(index * 100).springify()}
+      exiting={FadeOutRight.springify()}
+      layout={Layout.springify()}
+    >
       <Image 
         source={{ uri: item.product.images[0] }} 
         style={styles.image}
@@ -67,7 +79,7 @@ export default function CartItem({ item }: CartItemProps) {
           </Pressable>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -75,19 +87,19 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     backgroundColor: Colors.background,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 12,
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 2,
   },
   image: {
     width: 80,
     height: 80,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: Colors.placeholder,
   },
   details: {
@@ -97,13 +109,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: Colors.text,
     marginBottom: 4,
   },
   price: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: Colors.primary,
     marginBottom: 8,
   },
@@ -120,14 +132,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   quantityButton: {
-    padding: 6,
+    padding: 8,
   },
   quantityText: {
     paddingHorizontal: 8,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   removeButton: {
-    padding: 6,
+    padding: 8,
   },
 });

@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, Pressable, ActivityIndicator, ViewStyle, TextStyle } from "react-native";
 import Colors from "@/constants/colors";
+import Fonts from "@/constants/fonts";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 
 interface ButtonProps {
   title: string;
@@ -12,6 +14,8 @@ interface ButtonProps {
   textStyle?: TextStyle;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export default function Button({
   title,
   onPress,
@@ -21,6 +25,22 @@ export default function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+  };
+
   const buttonStyles = [
     styles.button,
     variant === "primary" && styles.primaryButton,
@@ -40,10 +60,12 @@ export default function Button({
   ];
 
   return (
-    <Pressable
-      style={buttonStyles}
+    <AnimatedPressable
+      style={[buttonStyles, animatedStyle]}
       onPress={onPress}
       disabled={disabled || isLoading}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
       {isLoading ? (
         <ActivityIndicator 
@@ -53,17 +75,22 @@ export default function Button({
       ) : (
         <Text style={textStyles}>{title}</Text>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   primaryButton: {
     backgroundColor: Colors.primary,
@@ -73,15 +100,17 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     backgroundColor: "transparent",
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.primary,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   disabledButton: {
     opacity: 0.6,
   },
   text: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   primaryText: {
     color: Colors.background,

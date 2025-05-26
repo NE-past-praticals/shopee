@@ -1,21 +1,38 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView, Image, ActivityIndicator, Pressable } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState, useRef } from "react";
+import { StyleSheet, Text, View, ScrollView, Image, ActivityIndicator, Pressable, Dimensions } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchProduct } from "@/api/client";
 import { Product } from "@/types/api";
 import Button from "@/components/Button";
 import { useCartStore } from "@/stores/cartStore";
 import Colors from "@/constants/colors";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import Fonts from "@/constants/fonts";
+import { ChevronLeft, ChevronRight, Heart } from "lucide-react-native";
+import Animated, { FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import LottieView from "lottie-react-native";
+
+const { width } = Dimensions.get("window");
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   const { addToCart } = useCartStore();
+  const successAnimation = useRef<LottieView>(null);
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
   
   useEffect(() => {
     const loadProduct = async () => {
@@ -43,8 +60,21 @@ export default function ProductDetailScreen() {
   
   const handleAddToCart = () => {
     if (product) {
-      addToCart(product);
-      alert("Product added to cart!");
+      setIsAddingToCart(true);
+      scale.value = withSpring(1.1, { damping: 10, stiffness: 300 }, () => {
+        scale.value = withSpring(1);
+      });
+      
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Show animation
+      successAnimation.current?.play();
+      
+      // Add to cart after animation
+      setTimeout(() => {
+        addToCart(product);
+        setIsAddingToCart(false);
+      }, 1500);
     }
   };
   
@@ -53,6 +83,7 @@ export default function ProductDetailScreen() {
       setCurrentImageIndex((prev) => 
         prev === 0 ? product.images.length - 1 : prev - 1
       );
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
   
@@ -61,13 +92,24 @@ export default function ProductDetailScreen() {
       setCurrentImageIndex((prev) => 
         prev === product.images.length - 1 ? 0 : prev + 1
       );
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+  };
+  
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
   
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LottieView
+          source={require('@/assets/animations/loading.json')}
+          autoPlay
+          loop
+          style={{ width: 200, height: 200 }}
+        />
       </View>
     );
   }
@@ -112,9 +154,23 @@ export default function ProductDetailScreen() {
             </View>
           </>
         )}
+        
+        <Pressable 
+          style={styles.favoriteButton}
+          onPress={toggleFavorite}
+        >
+          <Heart 
+            size={24} 
+            color={isFavorite ? Colors.error : Colors.background} 
+            fill={isFavorite ? Colors.error : "none"} 
+          />
+        </Pressable>
       </View>
       
-      <View style={styles.content}>
+      <Animated.View 
+        style={styles.content}
+        entering={FadeInUp.springify()}
+      >
         <Text style={styles.category}>{product.category.name}</Text>
         <Text style={styles.title}>{product.title}</Text>
         <Text style={styles.price}>${product.price.toFixed(2)}</Text>
@@ -124,12 +180,27 @@ export default function ProductDetailScreen() {
         <Text style={styles.descriptionTitle}>Description</Text>
         <Text style={styles.description}>{product.description}</Text>
         
-        <Button
-          title="Add to Cart"
-          onPress={handleAddToCart}
-          style={styles.addButton}
-        />
-      </View>
+        <Animated.View style={animatedStyle}>
+          <Button
+            title={isAddingToCart ? "Adding to Cart..." : "Add to Cart"}
+            onPress={handleAddToCart}
+            style={styles.addButton}
+            disabled={isAddingToCart}
+          />
+        </Animated.View>
+        
+        {isAddingToCart && (
+          <View style={styles.successAnimation}>
+            <LottieView
+              ref={successAnimation}
+              source={require('@/assets/animations/success.json')}
+              autoPlay={false}
+              loop={false}
+              style={{ width: 100, height: 100 }}
+            />
+          </View>
+        )}
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -149,10 +220,11 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 16,
     textAlign: "center",
+    fontFamily: Fonts.medium,
   },
   imageContainer: {
     position: "relative",
-    height: 300,
+    height: 350,
     backgroundColor: Colors.placeholder,
   },
   image: {
@@ -198,6 +270,17 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
+  favoriteButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   content: {
     backgroundColor: Colors.background,
     borderTopLeftRadius: 24,
@@ -208,18 +291,19 @@ const styles = StyleSheet.create({
   },
   category: {
     fontSize: 14,
+    fontFamily: Fonts.medium,
     color: Colors.placeholder,
     marginBottom: 8,
   },
   title: {
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: Colors.text,
     marginBottom: 8,
   },
   price: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 22,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
     marginBottom: 16,
   },
@@ -230,17 +314,25 @@ const styles = StyleSheet.create({
   },
   descriptionTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: Colors.text,
     marginBottom: 8,
   },
   description: {
     fontSize: 16,
     lineHeight: 24,
+    fontFamily: Fonts.regular,
     color: Colors.text,
     marginBottom: 24,
   },
   addButton: {
     marginTop: 8,
+  },
+  successAnimation: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    zIndex: 10,
   },
 });

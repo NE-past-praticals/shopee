@@ -5,6 +5,9 @@ import { Product, Category } from "@/types/api";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import Colors from "@/constants/colors";
+import Fonts from "@/constants/fonts";
+import Animated, { FadeIn } from "react-native-reanimated";
+import LottieView from "lottie-react-native";
 
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -46,7 +49,12 @@ export default function HomeScreen() {
   if (isLoading && !refreshing) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LottieView
+          source={require('@/assets/animations/loading.json')}
+          autoPlay
+          loop
+          style={{ width: 200, height: 200 }}
+        />
       </View>
     );
   }
@@ -67,6 +75,14 @@ export default function HomeScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
     >
+      <Animated.View 
+        style={styles.welcomeSection}
+        entering={FadeIn.duration(500)}
+      >
+        <Text style={styles.welcomeTitle}>Welcome to ShopApp</Text>
+        <Text style={styles.welcomeSubtitle}>Discover amazing products</Text>
+      </Animated.View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Categories</Text>
         <ScrollView
@@ -74,8 +90,8 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContainer}
         >
-          {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
+          {categories.map((category, index) => (
+            <CategoryCard key={category.id} category={category} index={index} />
           ))}
         </ScrollView>
       </View>
@@ -83,9 +99,9 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Featured Products</Text>
         <View style={styles.productsGrid}>
-          {products.slice(0, 6).map((product) => (
+          {products.slice(0, 6).map((product, index) => (
             <View key={product.id} style={styles.productItem}>
-              <ProductCard product={product} />
+              <ProductCard product={product} index={index} />
             </View>
           ))}
         </View>
@@ -112,13 +128,29 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 16,
     textAlign: "center",
+    fontFamily: Fonts.medium,
+  },
+  welcomeSection: {
+    marginBottom: 24,
+    paddingVertical: 16,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    color: Colors.placeholder,
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
+    fontFamily: Fonts.semiBold,
     marginBottom: 16,
     color: Colors.text,
   },

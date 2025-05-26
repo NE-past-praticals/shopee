@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, ScrollView, Pressable } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Pressable, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import Colors from "@/constants/colors";
+import Fonts from "@/constants/fonts";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isAuthenticated, isLoading, error, clearError } = useAuthStore();
+  const { login, continueAsGuest, isAuthenticated, isLoading, error, clearError } = useAuthStore();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +56,7 @@ export default function LoginScreen() {
   
   const handleLogin = async () => {
     if (validateForm()) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await login({ email, password });
     }
   };
@@ -61,56 +65,127 @@ export default function LoginScreen() {
     router.push("/auth/register");
   };
   
+  const handleGuestLogin = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    continueAsGuest();
+    router.replace("/");
+  };
+  
+  const handleDemoLogin = () => {
+    setEmail("john@mail.com");
+    setPassword("changeme");
+  };
+  
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
-      <Text style={styles.title}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Sign in to your account</Text>
-      
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      
-      <Input
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        placeholder="your@email.com"
-        error={emailError}
-        style={styles.input}
-      />
-      
-      <Input
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Your password"
-        secureTextEntry
-        error={passwordError}
-        style={styles.input}
-      />
-      
-      <Button
-        title="Login"
-        onPress={handleLogin}
-        isLoading={isLoading}
-        style={styles.button}
-      />
-      
-      <View style={styles.registerContainer}>
-        <Text style={styles.registerText}>Don't have an account?</Text>
-        <Pressable onPress={handleRegister}>
-          <Text style={styles.registerLink}>Register</Text>
-        </Pressable>
-      </View>
-      
-      <View style={styles.demoContainer}>
-        <Text style={styles.demoText}>Demo credentials:</Text>
-        <Text style={styles.demoCredentials}>Email: john@mail.com</Text>
-        <Text style={styles.demoCredentials}>Password: changeme</Text>
-      </View>
-    </ScrollView>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Animated.Text 
+          style={styles.title}
+          entering={FadeInDown.delay(100).springify()}
+        >
+          Welcome Back
+        </Animated.Text>
+        
+        <Animated.Text 
+          style={styles.subtitle}
+          entering={FadeInDown.delay(200).springify()}
+        >
+          Sign in to your account
+        </Animated.Text>
+        
+        {error && (
+          <Animated.Text 
+            style={styles.errorText}
+            entering={FadeIn.duration(300)}
+          >
+            {error}
+          </Animated.Text>
+        )}
+        
+        <Animated.View entering={FadeInDown.delay(300).springify()}>
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="your@email.com"
+            error={emailError}
+            style={styles.input}
+          />
+        </Animated.View>
+        
+        <Animated.View entering={FadeInDown.delay(400).springify()}>
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Your password"
+            secureTextEntry
+            error={passwordError}
+            style={styles.input}
+          />
+        </Animated.View>
+        
+        <Animated.View entering={FadeInDown.delay(500).springify()}>
+          <Button
+            title="Login"
+            onPress={handleLogin}
+            isLoading={isLoading}
+            style={styles.button}
+          />
+        </Animated.View>
+        
+        <Animated.View 
+          style={styles.registerContainer}
+          entering={FadeInDown.delay(600).springify()}
+        >
+          <Text style={styles.registerText}>Don't have an account?</Text>
+          <Pressable onPress={handleRegister}>
+            <Text style={styles.registerLink}>Register</Text>
+          </Pressable>
+        </Animated.View>
+        
+        <Animated.View 
+          style={styles.dividerContainer}
+          entering={FadeInDown.delay(700).springify()}
+        >
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.divider} />
+        </Animated.View>
+        
+        <Animated.View entering={FadeInDown.delay(800).springify()}>
+          <Button
+            title="Continue as Guest"
+            onPress={handleGuestLogin}
+            variant="outline"
+            style={styles.guestButton}
+          />
+        </Animated.View>
+        
+        <Animated.View 
+          style={styles.demoContainer}
+          entering={FadeInDown.delay(900).springify()}
+        >
+          <Text style={styles.demoText}>Demo credentials:</Text>
+          <Text style={styles.demoCredentials}>Email: john@mail.com</Text>
+          <Text style={styles.demoCredentials}>Password: changeme</Text>
+          <Pressable 
+            style={styles.demoButton}
+            onPress={handleDemoLogin}
+          >
+            <Text style={styles.demoButtonText}>Fill Demo Credentials</Text>
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -121,15 +196,17 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+    paddingTop: 40,
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: Colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: Colors.placeholder,
     marginBottom: 32,
   },
@@ -143,6 +220,7 @@ const styles = StyleSheet.create({
     color: Colors.error,
     marginBottom: 16,
     textAlign: "center",
+    fontFamily: Fonts.medium,
   },
   registerContainer: {
     flexDirection: "row",
@@ -152,28 +230,61 @@ const styles = StyleSheet.create({
   registerText: {
     color: Colors.text,
     marginRight: 4,
+    fontFamily: Fonts.regular,
   },
   registerLink: {
     color: Colors.primary,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    color: Colors.placeholder,
+    fontFamily: Fonts.medium,
+  },
+  guestButton: {
+    marginBottom: 24,
   },
   demoContainer: {
-    marginTop: 48,
+    marginTop: 24,
     padding: 16,
     backgroundColor: Colors.card,
-    borderRadius: 8,
+    borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
   },
   demoText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     color: Colors.text,
     marginBottom: 8,
   },
   demoCredentials: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: Colors.text,
     marginBottom: 4,
+  },
+  demoButton: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    backgroundColor: Colors.lightGray,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  demoButtonText: {
+    color: Colors.primary,
+    fontFamily: Fonts.medium,
+    fontSize: 14,
   },
 });
