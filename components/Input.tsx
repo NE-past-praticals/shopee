@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, TextInput, View, Text, ViewStyle } from "react-native";
 import Colors from "@/constants/colors";
+import Fonts from "@/constants/fonts";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 interface InputProps {
   value: string;
@@ -22,7 +24,10 @@ export default function Input({
   style,
 }: InputProps) {
   return (
-    <View style={[styles.container, style]}>
+    <Animated.View 
+      style={[styles.container, style]}
+      entering={FadeIn.duration(300)}
+    >
       {label && <Text style={styles.label}>{label}</Text>}
       
       <TextInput
@@ -35,8 +40,15 @@ export default function Input({
         autoCapitalize="none"
       />
       
-      {error && <Text style={styles.errorText}>{error}</Text>}
-    </View>
+      {error && (
+        <Animated.Text 
+          style={styles.errorText}
+          entering={FadeIn.duration(300)}
+        >
+          {error}
+        </Animated.Text>
+      )}
+    </Animated.View>
   );
 }
 
@@ -46,17 +58,18 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: "500",
+    fontFamily: Fonts.medium,
     marginBottom: 8,
     color: Colors.text,
   },
   input: {
-    height: 48,
-    borderWidth: 1,
+    height: 52,
+    borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: Colors.text,
     backgroundColor: Colors.background,
   },
@@ -66,6 +79,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.error,
     fontSize: 14,
+    fontFamily: Fonts.regular,
     marginTop: 4,
   },
 });

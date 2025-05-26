@@ -1,15 +1,20 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, Image, Alert, ScrollView } from "react-native";
+import { StyleSheet, Text, View, Image, Alert, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import Button from "@/components/Button";
 import Colors from "@/constants/colors";
-import { User, LogOut, ShoppingBag, Heart, Settings } from "lucide-react-native";
+import Fonts from "@/constants/fonts";
+import { User, LogOut, ShoppingBag, Heart, Settings, ChevronRight } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, isGuest, logout } = useAuthStore();
+  const { resetOnboarding } = useOnboardingStore();
   const [avatar, setAvatar] = useState<string | null>(user?.avatar || null);
   
   const handleLogin = () => {
@@ -28,6 +33,7 @@ export default function ProfileScreen() {
         {
           text: "Logout",
           onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             logout();
           },
           style: "destructive",
@@ -51,12 +57,36 @@ export default function ProfileScreen() {
     
     if (!result.canceled) {
       setAvatar(result.assets[0].uri);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
   
-  if (!isAuthenticated) {
+  const handleResetOnboarding = () => {
+    Alert.alert(
+      "Reset Onboarding",
+      "Are you sure you want to see the onboarding screens again?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Reset",
+          onPress: () => {
+            resetOnboarding();
+            router.replace("/");
+          },
+        },
+      ]
+    );
+  };
+  
+  if (!isAuthenticated && !isGuest) {
     return (
-      <View style={styles.container}>
+      <Animated.View 
+        style={styles.container}
+        entering={FadeIn.duration(500)}
+      >
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
             <User size={64} color={Colors.placeholder} />
@@ -73,15 +103,18 @@ export default function ProfileScreen() {
           onPress={handleLogin}
           style={styles.loginButton}
         />
-      </View>
+      </Animated.View>
     );
   }
   
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View 
+        style={styles.header}
+        entering={FadeIn.duration(500)}
+      >
         <View style={styles.avatarContainer}>
-          {avatar ? (
+          {avatar && !isGuest ? (
             <Image source={{ uri: avatar }} style={styles.avatarImage} />
           ) : (
             <View style={styles.avatar}>
@@ -89,38 +122,68 @@ export default function ProfileScreen() {
             </View>
           )}
           
-          <Button
-            title="Change Photo"
-            variant="outline"
-            onPress={handlePickImage}
-            style={styles.changePhotoButton}
-            textStyle={styles.changePhotoText}
-          />
+          {!isGuest && (
+            <Button
+              title="Change Photo"
+              variant="outline"
+              onPress={handlePickImage}
+              style={styles.changePhotoButton}
+              textStyle={styles.changePhotoText}
+            />
+          )}
         </View>
         
-        <Text style={styles.name}>{user?.name || "User"}</Text>
-        <Text style={styles.email}>{user?.email || "user@example.com"}</Text>
-      </View>
+        <Text style={styles.name}>{isGuest ? "Guest User" : (user?.name || "User")}</Text>
+        {!isGuest && <Text style={styles.email}>{user?.email || "user@example.com"}</Text>}
+        
+        {isGuest && (
+          <Text style={styles.guestMessage}>
+            You are browsing as a guest. Create an account to save your information.
+          </Text>
+        )}
+        
+        {isGuest && (
+          <Button
+            title="Create Account"
+            onPress={() => router.push("/auth/register")}
+            style={styles.createAccountButton}
+          />
+        )}
+      </Animated.View>
       
       <View style={styles.section}>
-        <View style={styles.menuItem}>
-          <ShoppingBag size={24} color={Colors.text} />
-          <Text style={styles.menuText}>My Orders</Text>
-        </View>
-        
-        <View style={styles.menuItem}>
-          <Heart size={24} color={Colors.text} />
-          <Text style={styles.menuText}>Wishlist</Text>
-        </View>
-        
-        <View style={styles.menuItem}>
-          <Settings size={24} color={Colors.text} />
-          <Text style={styles.menuText}>Settings</Text>
-        </View>
+        {[
+          { icon: <ShoppingBag size={24} color={Colors.text} />, title: "My Orders", delay: 0 },
+          { icon: <Heart size={24} color={Colors.text} />, title: "Wishlist", delay: 100 },
+          { icon: <Settings size={24} color={Colors.text} />, title: "Settings", delay: 200 },
+          { 
+            icon: <LogOut size={24} color={Colors.primary} />, 
+            title: "Reset Onboarding", 
+            color: Colors.primary,
+            onPress: handleResetOnboarding,
+            delay: 300
+          },
+        ].map((item, index) => (
+          <Animated.View 
+            key={index}
+            entering={FadeInDown.delay(item.delay).springify()}
+          >
+            <Pressable 
+              style={styles.menuItem}
+              onPress={item.onPress}
+            >
+              {item.icon}
+              <Text style={[styles.menuText, item.color && { color: item.color }]}>
+                {item.title}
+              </Text>
+              <ChevronRight size={20} color={Colors.placeholder} />
+            </Pressable>
+          </Animated.View>
+        ))}
       </View>
       
       <Button
-        title="Logout"
+        title={isGuest ? "Sign Out" : "Logout"}
         variant="outline"
         onPress={handleLogout}
         style={styles.logoutButton}
@@ -150,10 +213,15 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.lightGray,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   avatarImage: {
     width: 100,
@@ -167,30 +235,48 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 14,
+    fontFamily: Fonts.medium,
   },
   name: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 22,
+    fontFamily: Fonts.bold,
     color: Colors.text,
     marginBottom: 4,
   },
   email: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: Colors.placeholder,
+  },
+  guestMessage: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: Colors.placeholder,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  createAccountButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
   title: {
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: Fonts.bold,
     color: Colors.text,
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: Colors.placeholder,
     marginBottom: 24,
     textAlign: "center",
     paddingHorizontal: 32,
+    lineHeight: 22,
   },
   loginButton: {
     marginHorizontal: 32,
@@ -211,8 +297,10 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 16,
+    fontFamily: Fonts.medium,
     marginLeft: 16,
     color: Colors.text,
+    flex: 1,
   },
   logoutButton: {
     margin: 24,

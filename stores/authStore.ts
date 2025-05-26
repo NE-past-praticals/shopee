@@ -7,10 +7,12 @@ import { login, register } from "@/api/client";
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   isLoading: boolean;
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
+  continueAsGuest: () => void;
   logout: () => void;
   clearError: () => void;
 }
@@ -20,6 +22,7 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
+      isGuest: false,
       isLoading: false,
       error: null,
       
@@ -27,7 +30,12 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const user = await login(credentials);
-          set({ user, isAuthenticated: true, isLoading: false });
+          set({ 
+            user, 
+            isAuthenticated: true, 
+            isGuest: false, 
+            isLoading: false 
+          });
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : "Login failed", 
@@ -40,7 +48,12 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const user = await register(userData);
-          set({ user, isAuthenticated: true, isLoading: false });
+          set({ 
+            user, 
+            isAuthenticated: true, 
+            isGuest: false, 
+            isLoading: false 
+          });
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : "Registration failed", 
@@ -49,8 +62,20 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       
+      continueAsGuest: () => {
+        set({ 
+          user: null, 
+          isAuthenticated: false, 
+          isGuest: true 
+        });
+      },
+      
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        set({ 
+          user: null, 
+          isAuthenticated: false, 
+          isGuest: false 
+        });
       },
       
       clearError: () => {

@@ -5,8 +5,11 @@ import { fetchProductsByCategory, fetchCategories } from "@/api/client";
 import { Product, Category } from "@/types/api";
 import ProductCard from "@/components/ProductCard";
 import Colors from "@/constants/colors";
+import Fonts from "@/constants/fonts";
 import EmptyState from "@/components/EmptyState";
 import { ShoppingBag } from "lucide-react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+import LottieView from "lottie-react-native";
 
 export default function CategoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,7 +54,12 @@ export default function CategoryScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LottieView
+          source={require('@/assets/animations/loading.json')}
+          autoPlay
+          loop
+          style={{ width: 200, height: 200 }}
+        />
       </View>
     );
   }
@@ -77,21 +85,24 @@ export default function CategoryScreen() {
   return (
     <View style={styles.container}>
       {category && (
-        <View style={styles.header}>
+        <Animated.View 
+          style={styles.header}
+          entering={FadeIn.duration(500)}
+        >
           <Text style={styles.categoryName}>{category.name}</Text>
           <Text style={styles.productCount}>
             {products.length} {products.length === 1 ? "product" : "products"}
           </Text>
-        </View>
+        </Animated.View>
       )}
       
       <FlatList
         data={products}
         numColumns={2}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <View style={styles.productItem}>
-            <ProductCard product={item} />
+            <ProductCard product={item} index={index} />
           </View>
         )}
         contentContainerStyle={styles.productsList}
@@ -116,6 +127,7 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 16,
     textAlign: "center",
+    fontFamily: Fonts.medium,
   },
   header: {
     backgroundColor: Colors.background,
@@ -124,13 +136,14 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   categoryName: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 22,
+    fontFamily: Fonts.bold,
     color: Colors.text,
     marginBottom: 4,
   },
   productCount: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: Colors.placeholder,
   },
   productsList: {
